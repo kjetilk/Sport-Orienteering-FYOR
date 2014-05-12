@@ -1,0 +1,15 @@
+@prefix :     <http://usefulinc.com/ns/doap#> .
+@prefix dc:   <http://purl.org/dc/terms/> .
+@prefix my:   <http://dev.kjernsmo.net/unreleasd#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix dcs:  <http://ontologi.es/doap-changeset#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+my:project :release my:v_0_01 .
+
+my:v_0_01
+    a           :Version ;
+    dc:issued   "2014-05-16"^^xsd:date ;
+    rdfs:label "Initial release."@en ;
+    :revision   "0.01"^^xsd:string .

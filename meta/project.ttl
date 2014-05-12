@@ -1,0 +1,30 @@
+@prefix :     <http://usefulinc.com/ns/doap#> .
+@prefix dc:   <http://purl.org/dc/terms/> .
+@prefix my:   <http://dev.kjernsmo.net/unreleased#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix dcs:  <http://ontologi.es/doap-changeset#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+
+<>
+    dc:title     "DOAP for Sport-Orienteering-FYOR"@en ;
+    dc:subject   my:project ;
+    dc:creator   <http://www.kjetil.kjernsmo.net/foaf#me> .
+
+my:project	 
+    a           :Project ;
+    :name       "Sport-Orienteering-FYOR" ;
+    :shortdesc  "Prototype for Follow Your Own Runner server side app for orienteering competitions."@en ;
+    :created    "2014-05-12"^^xsd:date ;
+    :license     <http://dev.perl.org/licenses/> ;      
+    :programming-language "Perl" ;
+    :maintainer <http://www.kjetil.kjernsmo.net/foaf#me> ;
+#    :homepage <https://metacpan.org/module/RDF::Generator::Void> ;
+    :repository [ 
+    		  a :GitRepository ; 
+		  :browse <https://github.com/kjetilk/Sport-Orienteering-FYOR/> 
+ 		] ;
+    :bug-database <https://github.com/kjetilk/Sport-Orienteering-FYOR/issues> .
+
+

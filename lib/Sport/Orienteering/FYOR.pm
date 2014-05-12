@@ -3,10 +3,12 @@ package Sport::Orienteering::FYOR;
 use 5.006;
 use strict;
 use warnings;
+use Web::Simple;
+
 
 =head1 NAME
 
-Sport::Orienteering::FYOR - The great new Sport::Orienteering::FYOR!
+Sport::Orienteering::FYOR - Follow your own runner server
 
 =head1 VERSION
 
@@ -19,77 +21,21 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-Quick summary of what the module does.
-
-Perhaps a little code snippet.
-
-    use Sport::Orienteering::FYOR;
-
-    my $foo = Sport::Orienteering::FYOR->new();
-    ...
-
-=head1 EXPORT
-
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
-
-=head1 SUBROUTINES/METHODS
-
-=head2 function1
+A prototype implementation of some ideas around following your own runner in orienteering competitions.
 
 =cut
 
-sub function1 {
+
+sub dispatch_request {
+  sub (GET) {
+    [ 200, [ 'Content-type', 'text/plain' ], [ 'Hello world!' ] ]
+  },
+  sub () {
+    [ 405, [ 'Content-type', 'text/plain' ], [ 'Method not allowed' ] ]
+  }
 }
 
-=head2 function2
-
-=cut
-
-sub function2 {
-}
-
-=head1 AUTHOR
-
-Kjetil Kjernsmo, C<< <kjetilk at cpan.org> >>
-
-=head1 BUGS
-
-Please report any bugs or feature requests to C<bug-sport-orienteering-fyor at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Sport-Orienteering-FYOR>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
-
-
-
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc Sport::Orienteering::FYOR
-
-
-You can also look for information at:
-
-=over 4
-
-=item * RT: CPAN's request tracker (report bugs here)
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Sport-Orienteering-FYOR>
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/Sport-Orienteering-FYOR>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Sport-Orienteering-FYOR>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Sport-Orienteering-FYOR/>
-
-=back
+Sport::Orienteering::FYOR->run_if_script;
 
 
 =head1 ACKNOWLEDGEMENTS

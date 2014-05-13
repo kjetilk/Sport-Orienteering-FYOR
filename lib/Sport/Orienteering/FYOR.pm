@@ -29,15 +29,13 @@ A prototype implementation of some ideas around following your own runner in ori
 
 
 sub default_config {
-	my $base_dir = '/home/kjetil/dev/Sport-Orienteering-FYOR'; #$FindBin::Bin;
 	store => {
 				 storetype => 'DBI',
 				 name      => 'fyor',
-				 dsn       => "dbi:SQLite:dbname=$base_dir/fyor.db",
-				 username  => '',
-				 password  => ''
+				 dsn       => "dbi:Pg:dbname=fyor",
+				 username  => 'kjetil',
+				 password  => 'dahut'
 				},
-	base_dir => $base_dir,
 	base_uri => 'http://localhost:5000/'
 }
 
@@ -45,10 +43,8 @@ sub default_config {
 
 sub BUILD {
 	my $self = shift;
-	warn Data::Dumper::Dumper($self->config->{store});
 	my $store = RDF::Trine::Store->new( $self->config->{store} );
 	$self->{model} = RDF::Trine::Model->new( $store );
-	warn $self->{model}->size;
 }
 
 
@@ -56,8 +52,8 @@ sub dispatch_request {
   my $self = shift;
   sub (/cam/*) {
 	  sub (GET) {
-		  my $iterator = $self->{model}->get_statements(undef, undef, undef, iri('http://localhost:5000/cam/1'));
-		  warn $iterator->to_string;
+		  my $iterator = $self->{model}->get_statements(undef, undef, undef, undef);#iri('http://localhost:5000/cam/1'));
+#		  warn $iterator->to_string;
 		  my $serializer = RDF::Trine::Serializer::Turtle->new();
 		  return [ 200, 
 					  [ 'Content-type', 'text/turtle' ], 

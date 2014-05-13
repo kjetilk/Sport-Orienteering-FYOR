@@ -7,6 +7,8 @@ use Web::Simple;
 use Web::Dispatch::HTTPMethods;
 use FindBin;
 use RDF::Trine qw(iri);
+use Plack::Request;
+
 
 =head1 NAME
 
@@ -50,18 +52,17 @@ sub BUILD {
 
 
 sub dispatch_request {
-  my $self = shift;
+  my ($self, $env) = @_;
+  my $req = Plack::Request->new($env);
+  my $uri = iri($req->uri);
   sub (/cam/*) {
 	  sub (GET) {
-		  my $iterator = $self->{model}->get_statements(undef, undef, undef, iri('http://localhost:5000/cam/1'));
+		  my $iterator = $self->{model}->get_statements(undef, undef, undef, $uri);
 		  my $serializer = RDF::Trine::Serializer::Turtle->new();
 		  my $output =  $serializer->serialize_iterator_to_string($iterator);
-		  warn $output;
-
 		  return [ 200, 
 					  [ 'Content-type', 'text/turtle' ], 
 					  [ $output ]
-#					  [ $serializer->serialize_iterator_to_string($iterator) ]
 					]
 	  }
   }

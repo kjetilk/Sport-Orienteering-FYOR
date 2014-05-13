@@ -4,7 +4,9 @@ use 5.006;
 use strict;
 use warnings;
 use Web::Simple;
-
+use Web::Dispatch::HTTPMethods;
+use FindBin;
+use RDF::Trine qw(iri);
 
 =head1 NAME
 
@@ -26,12 +28,42 @@ A prototype implementation of some ideas around following your own runner in ori
 =cut
 
 
+sub default_config {
+	my $base_dir = '/home/kjetil/dev/Sport-Orienteering-FYOR'; #$FindBin::Bin;
+	store => {
+				 storetype => 'DBI',
+				 name      => 'fyor',
+				 dsn       => "dbi:SQLite:dbname=$base_dir/fyor.db",
+				 username  => '',
+				 password  => ''
+				},
+	base_dir => $base_dir,
+	base_uri => 'http://localhost:5000/'
+}
+
+#has model => (is => 'ro', isa => 'RDF::Trine::Model', builder => '_build_model');
+
+sub BUILD {
+	my $self = shift;
+	warn Data::Dumper::Dumper($self->config->{store});
+	my $store = RDF::Trine::Store->new( $self->config->{store} );
+	$self->{model} = RDF::Trine::Model->new( $store );
+	warn $self->{model}->size;
+}
+
+
 sub dispatch_request {
-  sub (GET) {
-    [ 200, [ 'Content-type', 'text/plain' ], [ 'Hello world!' ] ]
-  },
-  sub () {
-    [ 405, [ 'Content-type', 'text/plain' ], [ 'Method not allowed' ] ]
+  my $self = shift;
+  sub (/cam/*) {
+	  sub (GET) {
+		  my $iterator = $self->{model}->get_statements(undef, undef, undef, iri('http://localhost:5000/cam/1'));
+		  warn $iterator->to_string;
+		  my $serializer = RDF::Trine::Serializer::Turtle->new();
+		  return [ 200, 
+					  [ 'Content-type', 'text/turtle' ], 
+					  [ $serializer->serialize_iterator_to_string($iterator) ]
+					]
+	  }
   }
 }
 

@@ -8,7 +8,8 @@ use Web::Dispatch::HTTPMethods;
 use FindBin;
 use RDF::Trine qw(iri);
 use Plack::Request;
-
+use Scalar::Util qw(blessed);
+#use Error qw(:try);
 
 =head1 NAME
 
@@ -58,14 +59,45 @@ sub dispatch_request {
   sub (/cam/*) {
 	  sub (GET) {
 		  my $iterator = $self->{model}->get_statements(undef, undef, undef, $uri);
-		  my $serializer = RDF::Trine::Serializer::Turtle->new();
+		  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate($req->headers);
 		  my $output =  $serializer->serialize_iterator_to_string($iterator);
 		  return [ 200, 
-					  [ 'Content-type', 'text/turtle' ], 
+					  [ 'Content-type', $ct ], 
 					  [ $output ]
 					]
+	  },
+	  sub (PUT) {
+		  my $parser = _get_parser($req->content_type);
+		  return $parser unless (blessed($parser) && ($parser->isa("RDF::Trine::Parser"))); # Then, we didn't get a parser, but an error
+		  warn "aDAA".  $req->content ."\t". $self->{model}->size;
+
+		  eval {
+			  $parser->parse_into_model($self->config->{base_uri}, $req->content, $self->{model}, context => $uri);
+		  }; if ($@) {
+			  warn $@;
+		   	  return [ 400,
+		   			[ 'Content-Type', 'text/plain' ],
+		   			[ "Can't parse the request body: $@" ]
+		   		 ];
+		  }
+
+		  return [ 204, [], []	];
 	  }
   }
+}
+
+sub _get_parser {
+	my ($ct) = split(';', shift);
+	chomp($ct);
+	my $parser = RDF::Trine::Parser->parser_by_media_type($ct);
+	if ($parser) {
+		return $parser->new;
+	} else {
+		return [ 415, 
+					[ 'Content-Type', 'text/plain' ],
+					[ "Can't parse $ct" ]
+				 ];
+	}
 }
 
 Sport::Orienteering::FYOR->run_if_script;

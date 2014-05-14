@@ -62,23 +62,35 @@ sub dispatch_request {
 # First we look implement the cameras
   sub (/cam/) {
 	  sub (GET) {
+
+
+		  ## The following is equivalent to taking the WHERE-clause to a SPARQL CONSTRUCT query as:
+		  # {
+		  #   ?stream a dctype:MovingImage ;
+		  #           ?sp ?so ;
+		  #   OPTIONAL { ?so rev:hasReview ?vote .
+		  #              ?vote ?vp ?vo . }
+		  # }
+
 		  my $streamsmodel = RDF::Trine::Model->temporary_model;
-		  my $streamsbgp = RDF::Trine::Pattern->new(statement(variable('stream'),
-																				iri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-																				iri('http://purl.org/dc/dcmitype/MovingImage')),
-																  statement(variable('stream'),
-																				variable('p'),
-																				variable('o')));
-		  my $allstreams = $self->{model}->get_pattern($streamsbgp);
-		  $streamsmodel->add_iterator($allstreams);
-		  my $votebgp = RDF::Trine::Pattern->new(statement(variable('stream'),
-																			iri('http://purl.org/stuff/rev#hasReview'),
-																			variable('vote')),
-															  statement(variable('vote'),
-																			variable('p'),
-																			variable('o')));
-		  my $votedstreams = $streamsmodel->get_pattern($votebgp);
-		  $streamsmodel->add_iterator($votedstreams);
+		  my @allstreams = $self->{model}->subjects(iri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+																  iri('http://purl.org/dc/dcmitype/MovingImage'),
+																  undef);
+		  my @votedstreams;
+		  $streamsmodel->begin_bulk_ops();
+		  foreach my $subject (@allstreams) {
+			  my $streamsit = $self->{model}->get_statements($subject, undef, undef, undef);
+			  while (my $sst = $streamsit->next) {
+				  $streamsmodel->add_statement( $sst );
+				  if($sst->predicate->equal(iri('http://purl.org/stuff/rev#hasReview'))) {
+					  my $votesit = $self->{model}-get_statements($sst->object, undef, undef, undef);
+					  while (my $vst = $votesit->next) {
+						  $streamsmodel->add_statement( $vst );
+					  }
+				  }
+			  }
+		  }
+		  $streamsmodel->end_bulk_ops();
 		  my $output =  $serializer->serialize_model_to_string($streamsmodel);
 		  return [ 200, 
 					  [ 'Content-type', $ct ], 

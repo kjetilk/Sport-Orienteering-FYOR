@@ -75,7 +75,6 @@ sub dispatch_request {
 		  my @allstreams = $self->{model}->subjects(iri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
 																  iri('http://purl.org/dc/dcmitype/MovingImage'),
 																  undef);
-		  my @votedstreams;
 		  $streamsmodel->begin_bulk_ops();
 		  foreach my $subject (@allstreams) {
 			  my $streamsit = $self->{model}->get_statements($subject, undef, undef, undef);

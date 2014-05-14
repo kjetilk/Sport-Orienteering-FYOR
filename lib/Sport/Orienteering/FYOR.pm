@@ -56,7 +56,6 @@ sub dispatch_request {
   my ($self, $env) = @_;
   my $req = Plack::Request->new($env);
   my $uri = iri($req->uri);
-  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate($req->headers) if ($req->method eq 'GET');
 
 ##############
 # First we look implement the cameras
@@ -83,7 +82,7 @@ sub dispatch_request {
 			  while (my $sst = $streamsit->next) {
 				  $streamsmodel->add_statement( $sst );
 				  if($sst->predicate->equal(iri('http://purl.org/stuff/rev#hasReview'))) {
-					  my $votesit = $self->{model}-get_statements($sst->object, undef, undef, undef);
+					  my $votesit = $self->{model}->get_statements($sst->object, undef, undef, undef);
 					  while (my $vst = $votesit->next) {
 						  $streamsmodel->add_statement( $vst );
 					  }
@@ -91,6 +90,7 @@ sub dispatch_request {
 			  }
 		  }
 		  $streamsmodel->end_bulk_ops();
+		  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate($req->headers);
 		  my $output =  $serializer->serialize_model_to_string($streamsmodel);
 		  return [ 200, 
 					  [ 'Content-type', $ct ], 
@@ -101,6 +101,7 @@ sub dispatch_request {
 	sub (/cam/*) {
 	  sub (GET) {
 		  my $iterator = $self->{model}->get_statements(undef, undef, undef, $uri);
+		  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate($req->headers);
 		  my $output =  $serializer->serialize_iterator_to_string($iterator);
 		  return [ 200, 
 					  [ 'Content-type', $ct ], 

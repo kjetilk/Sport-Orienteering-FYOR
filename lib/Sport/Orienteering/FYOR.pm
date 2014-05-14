@@ -6,7 +6,7 @@ use warnings;
 use Web::Simple;
 use Web::Dispatch::HTTPMethods;
 use FindBin;
-use RDF::Trine qw(iri);
+use RDF::Trine qw(iri statement variable);
 use Plack::Request;
 use Scalar::Util qw(blessed);
 #use Error qw(:try);
@@ -56,10 +56,39 @@ sub dispatch_request {
   my ($self, $env) = @_;
   my $req = Plack::Request->new($env);
   my $uri = iri($req->uri);
-  sub (/cam/*) {
+  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate($req->headers) if ($req->method eq 'GET');
+
+##############
+# First we look implement the cameras
+  sub (/cam/) {
+	  sub (GET) {
+		  my $streamsmodel = RDF::Trine::Model->temporary_model;
+		  my $streamsbgp = RDF::Trine::Pattern->new(statement(variable('stream'),
+																				iri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+																				iri('http://purl.org/dc/dcmitype/MovingImage')),
+																  statement(variable('stream'),
+																				variable('p'),
+																				variable('o')));
+		  my $allstreams = $self->{model}->get_pattern($streamsbgp);
+		  $streamsmodel->add_iterator($allstreams);
+		  my $votebgp = RDF::Trine::Pattern->new(statement(variable('stream'),
+																			iri('http://purl.org/stuff/rev#hasReview'),
+																			variable('vote')),
+															  statement(variable('vote'),
+																			variable('p'),
+																			variable('o')));
+		  my $votedstreams = $streamsmodel->get_pattern($votebgp);
+		  $streamsmodel->add_iterator($votedstreams);
+		  my $output =  $serializer->serialize_model_to_string($streamsmodel);
+		  return [ 200, 
+					  [ 'Content-type', $ct ], 
+					  [ $output ]
+					]
+	  }
+	},
+	sub (/cam/*) {
 	  sub (GET) {
 		  my $iterator = $self->{model}->get_statements(undef, undef, undef, $uri);
-		  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate($req->headers);
 		  my $output =  $serializer->serialize_iterator_to_string($iterator);
 		  return [ 200, 
 					  [ 'Content-type', $ct ], 
@@ -69,8 +98,6 @@ sub dispatch_request {
 	  sub (PUT) {
 		  my $parser = _get_parser($req->content_type);
 		  return $parser unless (blessed($parser) && ($parser->isa("RDF::Trine::Parser"))); # Then, we didn't get a parser, but an error
-		  warn "aDAA".  $req->content ."\t". $self->{model}->size;
-
 		  eval {
 			  $parser->parse_into_model($self->config->{base_uri}, $req->content, $self->{model}, context => $uri);
 		  }; if ($@) {
@@ -83,6 +110,7 @@ sub dispatch_request {
 
 		  return [ 204, [], []	];
 	  }
+
   }
 }
 

@@ -123,7 +123,35 @@ sub dispatch_request {
 		  return [ 204, [], []	];
 	  }
 
+  },
+
+################
+# Votes per user
+  sub (/user/*/vote/*) {
+	  sub (GET) {
+		  return _just_bounded_description($self->{model}, $req);
+	  },
+	  sub (PUT) {
+		  # TODO: Check it is the correct user
+		  my $parser = _get_parser($req->content_type);
+		  return $parser unless (blessed($parser) && ($parser->isa("RDF::Trine::Parser"))); # Then, we didn't get a parser, but an error
+		  my $model = RDF::Trine::Model::StatementFilter->temporary_model;
+		  $model->add_rule(sub { return ($_[0]->subject->equal($uri) ? 1 : 0) });
+		  eval {
+			  $parser->parse_into_model($self->config->{base_uri}, $req->content, $model);
+		  }; if ($@) {
+			  warn $@;
+		   	  return [ 400,
+		   			[ 'Content-Type', 'text/plain' ],
+		   			[ "Can't parse the request body: $@" ]
+		   		 ];
+		  }
+
+		  return [ 204, [], []	];
+	  }
   }
+
+
 }
 
 sub _get_parser {
@@ -138,6 +166,19 @@ sub _get_parser {
 					[ "Can't parse $ct" ]
 				 ];
 	}
+}
+
+sub _just_bounded_description {
+	my ($model, $req) = @_;
+	my $iterator = $model->bounded_description(iri($req->uri));
+#	my ($ct, $serializer) = RDF::Trine::Serializer->negotiate($req->headers); # TODO: fix bug
+	my $ct = 'text/turtle';
+	my $serializer = RDF::Trine::Serializer::Turtle->new;
+	my $output =  $serializer->serialize_iterator_to_string($iterator);
+	return [ 200, 
+				[ 'Content-type', $ct ], 
+				[ $output ]
+			 ]
 }
 
 Sport::Orienteering::FYOR->run_if_script;

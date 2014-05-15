@@ -156,6 +156,11 @@ sub dispatch_request {
 		  $self->{model}->end_bulk_ops();
 
 		  return [ 204, [], []	];
+	  },
+	  sub (DELETE) {
+		  $self->{model}->remove_statements($uri, undef, undef, undef);
+		  $self->{model}->remove_statements(undef, undef, $uri, undef);
+		  return [ 204, [], []	];
 	  }
   }
 

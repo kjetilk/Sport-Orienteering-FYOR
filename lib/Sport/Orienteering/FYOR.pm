@@ -10,6 +10,7 @@ use RDF::Trine qw(iri statement variable);
 use Plack::Request;
 use Scalar::Util qw(blessed);
 use RDF::Trine::Model::StatementFilter;
+
 #use Error qw(:try);
 
 =head1 NAME
@@ -44,12 +45,12 @@ sub default_config {
 	base_uri => 'http://localhost:5000/'
 }
 
-#has model => (is => 'ro', isa => 'RDF::Trine::Model', builder => '_build_model');
+has model => (is => 'ro', isa => 'RDF::Trine::Model', builder => '_build_model');
 
-sub BUILD {
+sub _build_model {
 	my $self = shift;
 	my $store = RDF::Trine::Store->new( $self->config->{store} );
-	$self->{model} = RDF::Trine::Model->new( $store );
+	return RDF::Trine::Model->new( $store );
 }
 
 
@@ -57,6 +58,7 @@ sub dispatch_request {
   my ($self, $env) = @_;
   my $req = Plack::Request->new($env);
   my $uri = iri($req->uri);
+  $self->{model} = $self->model;
 
 ##############
 # First we look implement the cameras

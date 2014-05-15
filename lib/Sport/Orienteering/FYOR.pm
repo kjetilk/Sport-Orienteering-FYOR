@@ -9,6 +9,7 @@ use FindBin;
 use RDF::Trine qw(iri statement variable);
 use Plack::Request;
 use Scalar::Util qw(blessed);
+use RDF::Trine::Model::StatementFilter;
 #use Error qw(:try);
 
 =head1 NAME
@@ -144,6 +145,14 @@ sub dispatch_request {
 						  [ "Can't parse the request body: $@" ]
 						];
 		  }
+		  # Add the statements back to the persistent model
+		  $self->{model}->begin_bulk_ops();
+		  my $stream = $model->as_stream;
+		  while (my $st = $stream->next) {
+			  warn "FOO:.".$st->as_string;
+			  $self->{model}->add_statement($st);
+		  }
+		  $self->{model}->end_bulk_ops();
 
 		  return [ 204, [], []	];
 	  }
@@ -173,7 +182,7 @@ sub _just_bounded_description {
 	my $ct = 'text/turtle';
 	my $serializer = RDF::Trine::Serializer::Turtle->new;
 	my $output =  $serializer->serialize_iterator_to_string($iterator);
-	return [ 200, 
+	return [ 200,
 				[ 'Content-type', $ct ], 
 				[ $output ]
 			 ]

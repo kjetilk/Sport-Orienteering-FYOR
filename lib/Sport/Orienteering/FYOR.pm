@@ -145,11 +145,12 @@ sub dispatch_request {
 						  [ "Can't parse the request body: $@" ]
 						];
 		  }
+		  # Remove any previous votes
+		  $self->{model}->remove_statements($uri, iri('http://purl.org/stuff/rev#rating'), undef, undef);
 		  # Add the statements back to the persistent model
 		  $self->{model}->begin_bulk_ops();
 		  my $stream = $model->as_stream;
 		  while (my $st = $stream->next) {
-			  warn "FOO:.".$st->as_string;
 			  $self->{model}->add_statement($st);
 		  }
 		  $self->{model}->end_bulk_ops();

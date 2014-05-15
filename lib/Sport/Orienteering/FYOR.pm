@@ -113,11 +113,10 @@ sub dispatch_request {
 		  eval {
 			  $parser->parse_into_model($self->config->{base_uri}, $req->content, $self->{model}, context => $uri);
 		  }; if ($@) {
-			  warn $@;
-		   	  return [ 400,
-		   			[ 'Content-Type', 'text/plain' ],
-		   			[ "Can't parse the request body: $@" ]
-		   		 ];
+			  return [ 400,
+						  [ 'Content-Type', 'text/plain' ],
+						  [ "Can't parse the request body: $@" ]
+						];
 		  }
 
 		  return [ 204, [], []	];
@@ -140,11 +139,10 @@ sub dispatch_request {
 		  eval {
 			  $parser->parse_into_model($self->config->{base_uri}, $req->content, $model);
 		  }; if ($@) {
-			  warn $@;
-		   	  return [ 400,
-		   			[ 'Content-Type', 'text/plain' ],
-		   			[ "Can't parse the request body: $@" ]
-		   		 ];
+			  return [ 400,
+						  [ 'Content-Type', 'text/plain' ],
+						  [ "Can't parse the request body: $@" ]
+						];
 		  }
 
 		  return [ 204, [], []	];

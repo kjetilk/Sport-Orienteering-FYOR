@@ -88,7 +88,7 @@ sub dispatch_request {
 
 		  ## The following is equivalent to taking the WHERE-clause to a SPARQL CONSTRUCT query as:
 		  # {
-		  #   ?stream a dctype:MovingImage ;
+		  #   ?stream a dcmit:MovingImage ;
 		  #           ?sp ?so ;
 		  #   OPTIONAL { ?so rev:hasReview ?vote .
 		  #              ?vote ?vp ?vo . }

@@ -11,6 +11,8 @@ use Plack::Request;
 use Scalar::Util qw(blessed);
 use RDF::Trine::Model::StatementFilter;
 use MooX::late;
+use RDF::Trine::NamespaceMap;
+use URI::NamespaceMap;
 
 #use Error qw(:try);
 
@@ -48,10 +50,27 @@ sub default_config {
 
 has model => (is => 'ro', isa => 'RDF::Trine::Model', builder => '_build_model');
 
+has namespacemap => (is => 'ro', isa => 'RDF::Trine::NamespaceMap',
+							builder => '_build_namespacemap');
+
 sub _build_model {
 	my $self = shift;
 	my $store = RDF::Trine::Store->new( $self->config->{store} );
 	return RDF::Trine::Model->new( $store );
+}
+
+sub _build_namespacemap {
+	my $self = shift;
+	# First, make a guess for prefixes
+	my $urimap = URI::NamespaceMap->new( [ 'rdf', 'dcmit', 'rev', 'geo', 'disco' ] );
+	# Add my own
+	$urimap->add_mapping('hm' => 'http://example.org/hypermedia#');
+	$urimap->add_mapping('hma' => 'http://voting.orienteering.org/hypermedia-application-specific#');
+	my %hash; # Just a temporary compatibility hack
+	foreach my $prefix ($urimap->list_prefixes) {
+		$hash{$prefix} = $urimap->namespace_uri($prefix)->as_string;
+	}
+	return RDF::Trine::NamespaceMap->new( \%hash );
 }
 
 
@@ -92,7 +111,9 @@ sub dispatch_request {
 			  }
 		  }
 		  $streamsmodel->end_bulk_ops();
-		  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate($req->headers);
+		  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate('request_headers' => $req->headers, 
+																						base => $self->config->{base_uri},
+																						namespaces => $self->namespacemap);
 		  my $output =  $serializer->serialize_model_to_string($streamsmodel);
 		  return [ 200, 
 					  [ 'Content-type', $ct ], 
@@ -103,7 +124,9 @@ sub dispatch_request {
 	sub (/cam/*) {
 	  sub (GET) {
 		  my $iterator = $self->model->get_statements(undef, undef, undef, $uri);
-		  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate($req->headers);
+		  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate('request_headers' => $req->headers,
+																						base => $self->config->{base_uri},
+																						namespaces => $self->namespacemap );
 		  my $output =  $serializer->serialize_iterator_to_string($iterator);
 		  return [ 200, 
 					  [ 'Content-type', $ct ], 
@@ -131,7 +154,7 @@ sub dispatch_request {
 # Votes per user
   sub (/user/*/vote/*) {
 	  sub (GET) {
-		  return _just_bounded_description($self->model, $req);
+		  return $self->_just_bounded_description($req);
 	  },
 	  sub (PUT) {
 		  # TODO: Check it is the correct user
@@ -184,11 +207,11 @@ sub _get_parser {
 }
 
 sub _just_bounded_description {
-	my ($model, $req) = @_;
-	my $iterator = $model->bounded_description(iri($req->uri));
-#	my ($ct, $serializer) = RDF::Trine::Serializer->negotiate($req->headers); # TODO: fix bug
-	my $ct = 'text/turtle';
-	my $serializer = RDF::Trine::Serializer::Turtle->new;
+	my ($self, $req) = @_;
+	my $iterator = $self->model->bounded_description(iri($req->uri));
+	my ($ct, $serializer) = RDF::Trine::Serializer->negotiate('request_headers' => $req->headers, 
+																				 base => $self->config->{base_uri},
+																				 namespaces => $self->namespacemap);
 	my $output =  $serializer->serialize_iterator_to_string($iterator);
 	return [ 200,
 				[ 'Content-type', $ct ], 

@@ -50,8 +50,8 @@ sub default_config {
 
 has model => (is => 'ro', isa => 'RDF::Trine::Model', builder => '_build_model');
 
-has namespacemap => (is => 'ro', isa => 'RDF::Trine::NamespaceMap',
-							builder => '_build_namespacemap');
+has nsmap => (is => 'ro', isa => 'RDF::Trine::NamespaceMap',
+							builder => '_build_nsmap');
 
 sub _build_model {
 	my $self = shift;
@@ -59,7 +59,7 @@ sub _build_model {
 	return RDF::Trine::Model->new( $store );
 }
 
-sub _build_namespacemap {
+sub _build_nsmap {
 	my $self = shift;
 	# First, make a guess for prefixes
 	my $urimap = URI::NamespaceMap->new( [ 'rdf', 'dcmit', 'rev', 'geo', 'disco' ] );
@@ -78,6 +78,7 @@ sub dispatch_request {
   my ($self, $env) = @_;
   my $req = Plack::Request->new($env);
   my $uri = iri($req->uri);
+  my $ns = $self->nsmap;
 
 ##############
 # First we look implement the cameras
@@ -94,15 +95,13 @@ sub dispatch_request {
 		  # }
 
 		  my $streamsmodel = RDF::Trine::Model->temporary_model;
-		  my @allstreams = $self->model->subjects(iri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-																  iri('http://purl.org/dc/dcmitype/MovingImage'),
-																  undef);
+		  my @allstreams = $self->model->subjects($ns->rdf('type'), $ns->dcmit('MovingImage'), undef);
 		  $streamsmodel->begin_bulk_ops();
 		  foreach my $subject (@allstreams) {
 			  my $streamsit = $self->model->get_statements($subject, undef, undef, undef);
 			  while (my $sst = $streamsit->next) {
 				  $streamsmodel->add_statement( $sst );
-				  if($sst->predicate->equal(iri('http://purl.org/stuff/rev#hasReview'))) {
+				  if($sst->predicate->equal($ns->rev('hasReview'))) {
 					  my $votesit = $self->model->get_statements($sst->object, undef, undef, undef);
 					  while (my $vst = $votesit->next) {
 						  $streamsmodel->add_statement( $vst );
@@ -113,7 +112,7 @@ sub dispatch_request {
 		  $streamsmodel->end_bulk_ops();
 		  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate('request_headers' => $req->headers, 
 																						base => $self->config->{base_uri},
-																						namespaces => $self->namespacemap);
+																						namespaces => $self->nsmap);
 		  my $output =  $serializer->serialize_model_to_string($streamsmodel);
 		  return [ 200, 
 					  [ 'Content-type', $ct ], 
@@ -126,7 +125,7 @@ sub dispatch_request {
 		  my $iterator = $self->model->get_statements(undef, undef, undef, $uri);
 		  my ($ct, $serializer) = RDF::Trine::Serializer->negotiate('request_headers' => $req->headers,
 																						base => $self->config->{base_uri},
-																						namespaces => $self->namespacemap );
+																						namespaces => $self->nsmap );
 		  my $output =  $serializer->serialize_iterator_to_string($iterator);
 		  return [ 200, 
 					  [ 'Content-type', $ct ], 
@@ -171,7 +170,7 @@ sub dispatch_request {
 						];
 		  }
 		  # Remove any previous votes
-		  $self->model->remove_statements($uri, iri('http://purl.org/stuff/rev#rating'), undef, undef);
+		  $self->model->remove_statements($uri, $ns->rev('rating'), undef, undef);
 		  # Add the statements back to the persistent model
 		  $self->model->begin_bulk_ops();
 		  my $stream = $model->as_stream;
@@ -211,7 +210,7 @@ sub _just_bounded_description {
 	my $iterator = $self->model->bounded_description(iri($req->uri));
 	my ($ct, $serializer) = RDF::Trine::Serializer->negotiate('request_headers' => $req->headers, 
 																				 base => $self->config->{base_uri},
-																				 namespaces => $self->namespacemap);
+																				 namespaces => $self->nsmap);
 	my $output =  $serializer->serialize_iterator_to_string($iterator);
 	return [ 200,
 				[ 'Content-type', $ct ], 
